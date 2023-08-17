@@ -5,30 +5,52 @@
 # This workflow will build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
 
-name: Java CI with Gradle
+name: cicd
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+ on:
+   push:
+      branches:
+         - main
 
-permissions:
-  contents: read
+  jobs:
+    build-deploy:
+       name: Build and Deploy
+          runs-on: macos-latest
+  steps:
+    -name : checkout
+     uses:  actions/checkout@v1
+     
+    -name: Setup JDK 14
+     uses: actions/setup-java@v1
+     
+    with:(for parameters we say with)
+       distribution: ‘corretto’
+        Java-version: 14
+ 
+     -name: Unit Tests
+      run: man _B test —file pom.xml
 
-jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up JDK 11
-      uses: actions/setup-java@v3
-      with:
-        java-version: '14'
-        distribution: 'temurin'
-    - name: Build with Gradle
-      uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
-      with:
-        arguments: build
+     -name: Build the application
+      run:
+          mvn clean
+          mvn -B package —file pom.xml 
+       -name: Build Docker Image
+        uses: docker/build-push-action@v1
+        with:
+           context: .
+           dockerfile: Dockerfile
+           push: false. 
+           tags:  ${{ secrets.Docker_Hub-UserName }}/spring-boot:latest
+  
+       -name: Login to Docker hub
+           Uses: docker/login-action@v1
+           With:
+              Username: ${{ secrets.Docker-Hub-UserName }}
+              Password: ${{ secrets.Docker-Hub-Access_Token }}
+        -name: Push to Docker Hub
+            Uses: docker/build-push-action@v1
+            With:
+            Context: . 
+            Dockerfile: Dockerfile
+            Push: True (help us pushing to docker hub)
+            tags: ${{ secrets.Docker_Hub-UserName }}/spring-boot:latest
